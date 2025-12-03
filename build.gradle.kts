@@ -12,6 +12,7 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("org.mongodb:mongodb-driver-sync:4.11.0")
+    implementation("org.json:json:20231013")
 }
 
 tasks.test {

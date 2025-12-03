@@ -1,14 +1,17 @@
 package org.example.Codes
 
 import com.mongodb.client.MongoCollection
+import com.mongodb.client.model.Accumulators
+import com.mongodb.client.model.Aggregates
+import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Projections
+import com.mongodb.client.model.Sorts
 import com.mongodb.client.model.Updates
 import org.bson.Document
 
 class FuncionesCerveza {
-
     fun imprimirCervezas(collection: MongoCollection<Document>) {
-        println("=== ${collection.namespace.collectionName} ===")
-
+        println("\n=== ${collection.namespace.collectionName} ===")
         for (doc in collection.find()) {
             val id = doc.getInteger("idCerveza")
             val nombre = doc.getString("nombre")
@@ -17,18 +20,14 @@ class FuncionesCerveza {
             val color = doc.getString("color")
             val origen = doc.getString("origen")
             val puntuacion = doc.get("puntuacion", Number::class.java).toDouble()
-
             println("ID: $id - Nombre: $nombre - Graduación: $graduacion - Tipo: $tipo - Color: $color - Origen: $origen - Puntuación: $puntuacion")
         }
     }
-
     fun insertarCerveza(collection: MongoCollection<Document>) {
-        // Obtener el id máximo actual
         val maxId = collection.find()
             .sort(Document("idCerveza", -1))
             .first()
             ?.getInteger("idCerveza") ?: 0  // Si no hay documentos, empieza desde 0
-
         val nombre = funcionesExtra.leerDato("Introduce nombre: ", String::class.java)
         val graduacion = funcionesExtra.leerDato("Introduce graducaión: ", Double::class.java)
         val tipo = funcionesExtra.leerDato("Introduce el tipo: ", String::class.java)
@@ -43,14 +42,11 @@ class FuncionesCerveza {
             .append("color", color)
             .append("origen", origen)
             .append("puntuacion", puntuacion)
-
         collection.insertOne(nuevaCerveza)
         println("Cerveza '$nombre' añadida correctamente con ID ${maxId + 1}.")
     }
-
     fun actualizarCerveza(collection: MongoCollection<Document>) {
         imprimirCervezas(collection)
-
         val idCerveza = funcionesExtra.leerDato("Introduce ID de la cerveza a modificar: ", Int::class.java)
         // Buscar el documento
         val doc = collection.find(Document("idCerveza", idCerveza)).first()
@@ -58,9 +54,7 @@ class FuncionesCerveza {
             println("No existe ninguna cerveza con ID = $idCerveza")
             return
         }
-
         println("Cerveza seleccionada: ${doc.getString("nombre")}")
-
         val opcion = funcionesExtra.leerDato(variables.menuEdicionCerveza, Int::class.java)
         if (opcion == null || opcion !in 0..6) {
             println("Opción no válida.")
@@ -70,8 +64,6 @@ class FuncionesCerveza {
             println("Actualización cancelada.")
             return
         }
-
-        // Leer el nuevo valor según la opción
         val update = when (opcion) {
             1 -> Updates.set("nombre", funcionesExtra.leerDato("Nuevo nombre: ", String::class.java))
             2 -> Updates.set("graduacion", funcionesExtra.leerDato("Nueva graduación: ", Double::class.java))
@@ -81,7 +73,6 @@ class FuncionesCerveza {
             6 -> Updates.set("puntuacion", funcionesExtra.leerDato("Nueva graduación: ", Double::class.java))
             else -> null
         }
-
         if (update != null) {
             val resultado = collection.updateOne(Document("idCerveza", idCerveza), update)
             if (resultado.modifiedCount > 0) {
@@ -91,27 +82,21 @@ class FuncionesCerveza {
             }
         }
     }
-
     fun eliminarCerveza(collection: MongoCollection<Document>) {
         imprimirCervezas(collection)
-
         val idCerveza = funcionesExtra.leerDato("Introduce ID de la cerveza a eliminar: ", Int::class.java)
-        // Buscar el documento
         val doc = collection.find(Document("idCerveza", idCerveza)).first()
         if (doc == null) {
             println("No existe ninguna cerveza con ID = $idCerveza")
             return
         }
-
         val nombre = doc.getString("nombre")
         print("El nombre de la cerveza con ID $idCerveza es '$nombre'. ¿Quieres eliminarla? (s/n): ")
         val respuesta = readLine()?.lowercase()
-
         if (respuesta != "s") {
             println("Eliminación cancelada.")
             return
         }
-
         val resultado = collection.deleteOne(Document("idCerveza", idCerveza))
         if (resultado.deletedCount > 0) {
             println("Cerveza '$nombre' eliminada correctamente.")
@@ -119,6 +104,52 @@ class FuncionesCerveza {
             println("No se pudo eliminar la cerveza.")
         }
     }
-
+    fun consultarConFiltros(collection: MongoCollection<Document>) {
+        println("=== Cervezas con graduación > 5 ===")
+        val cervezasFuertes = collection.find(Filters.gt("graduacion", 5.0))
+        for (doc in cervezasFuertes) {
+            println("${doc.getString("nombre")} - Graduación: ${doc.get("graduacion", Number::class.java).toDouble()}")
+        }
+        println("\n=== Cervezas tipo Lager ===")
+        val cervezasLager = collection.find(Filters.eq("tipo", "Lager"))
+        for (doc in cervezasLager) {
+            println(doc.getString("nombre"))
+        }
+    }
+    fun consultarConProyeccion(collection: MongoCollection<Document>) {
+        println("=== Cervezas con solo nombre y graduación ===")
+        val proyeccion = collection.find()
+            .projection(Projections.include("nombre", "graduacion"))
+        for (doc in proyeccion) {
+            println("Nombre: ${doc.getString("nombre")} - Graduación: ${doc.get("graduacion", Number::class.java).toDouble()}")
+        }
+    }
+    fun calcularPromedioGraduacion(collection: MongoCollection<Document>) {
+        val promedio = collection.aggregate(
+            listOf(Aggregates.group(null, Accumulators.avg("promedio", "\$graduacion")))
+        ).first()
+        println("Promedio de graduación de todas las cervezas: ${promedio?.getDouble("promedio")}")
+    }
+    fun promedioPuntuacionPorTipo(collection: MongoCollection<Document>) {
+        println("=== Promedio de puntuación por tipo de cerveza ===")
+        val promedioPorTipo = collection.aggregate(
+            listOf(Aggregates.group("\$tipo", Accumulators.avg("promedioPuntuacion", "\$puntuacion")))
+        )
+        for (doc in promedioPorTipo) {
+            println("Tipo: ${doc.getString("_id")} - Promedio: ${doc.getDouble("promedioPuntuacion")}")
+        }
+    }
+    fun top3Cervezas(collection: MongoCollection<Document>) {
+        println("=== Top 3 cervezas por puntuación ===")
+        val top3 = collection.aggregate(
+            listOf(
+                Aggregates.sort(Sorts.descending("puntuacion")),
+                Aggregates.limit(3)
+            )
+        )
+        for (doc in top3) {
+            println("${doc.getString("nombre")} - Puntuación: ${doc.get("puntuacion", Number::class.java).toDouble()}")
+        }
+    }
 }
 val funcionesCervezas = FuncionesCerveza()
