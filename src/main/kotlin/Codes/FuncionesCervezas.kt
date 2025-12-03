@@ -1,209 +1,124 @@
 package org.example.Codes
 
-import java.sql.SQLException
-import kotlin.use
+import com.mongodb.client.MongoCollection
+import com.mongodb.client.model.Updates
+import org.bson.Document
 
-data class Cerveza(
-    val idCerveza: Int? = null,
-    val nombreCerveza: String,
-    val graduacionCerveza: Double,
-    val tipoCerveza: String,
-    val colorCerveza: String,
-    val origenCerveza: String,
-    val puntuacionCerveza: Double
-)
-object CervezasDAO {
-    // Listar Cervezas
-    fun listarCervezas(): MutableList<Cerveza>? {
-        val lista = mutableListOf<Cerveza>()
-        return try {
-            funcionesExtra.getConnection()?.use { conn ->
-                conn.createStatement().use { stmt ->
-                    stmt.executeQuery(variables.queryListarCervezas).use { rs ->
-                        while (rs.next()) {
-                            lista.add(
-                                Cerveza(
-                                    idCerveza = rs.getInt("idCerveza"),
-                                    nombreCerveza = rs.getString("nombreCerveza"),
-                                    graduacionCerveza = rs.getDouble("graduacionCerveza"),
-                                    tipoCerveza = rs.getString("tipoCerveza"),
-                                    colorCerveza = rs.getString("colorCerveza"),
-                                    origenCerveza = rs.getString("origenCerveza"),
-                                    puntuacionCerveza = rs.getDouble("puntuacionCerveza")
-                                )
-                            )
-                        }
-                    }
-                }
-            } ?: run {
-                println(variables.noConexion)
-                return null
+class FuncionesCerveza {
+
+    fun imprimirCervezas(collection: MongoCollection<Document>) {
+        println("=== ${collection.namespace.collectionName} ===")
+
+        for (doc in collection.find()) {
+            val id = doc.getInteger("idCerveza")
+            val nombre = doc.getString("nombre")
+            val graduacion = doc.get("graduacion", Number::class.java).toDouble()
+            val tipo = doc.getString("tipo")
+            val color = doc.getString("color")
+            val origen = doc.getString("origen")
+            val puntuacion = doc.get("puntuacion", Number::class.java).toDouble()
+
+            println("ID: $id - Nombre: $nombre - Graduación: $graduacion - Tipo: $tipo - Color: $color - Origen: $origen - Puntuación: $puntuacion")
+        }
+    }
+
+    fun insertarCerveza(collection: MongoCollection<Document>) {
+        // Obtener el id máximo actual
+        val maxId = collection.find()
+            .sort(Document("idCerveza", -1))
+            .first()
+            ?.getInteger("idCerveza") ?: 0  // Si no hay documentos, empieza desde 0
+
+        val nombre = funcionesExtra.leerDato("Introduce nombre: ", String::class.java)
+        val graduacion = funcionesExtra.leerDato("Introduce graducaión: ", Double::class.java)
+        val tipo = funcionesExtra.leerDato("Introduce el tipo: ", String::class.java)
+        val color = funcionesExtra.leerDato("Introduce el color: ", String::class.java)
+        val origen = funcionesExtra.leerDato("Introduce el origen: ", String::class.java)
+        val puntuacion = funcionesExtra.leerDato("Introduce la puntuación: ", Double::class.java)
+        val nuevaCerveza = Document()
+            .append("idCerveza", maxId + 1)
+            .append("nombre", nombre)
+            .append("graduacion", graduacion)
+            .append("tipo", tipo)
+            .append("color", color)
+            .append("origen", origen)
+            .append("puntuacion", puntuacion)
+
+        collection.insertOne(nuevaCerveza)
+        println("Cerveza '$nombre' añadida correctamente con ID ${maxId + 1}.")
+    }
+
+    fun actualizarCerveza(collection: MongoCollection<Document>) {
+        imprimirCervezas(collection)
+
+        val idCerveza = funcionesExtra.leerDato("Introduce ID de la cerveza a modificar: ", Int::class.java)
+        // Buscar el documento
+        val doc = collection.find(Document("idCerveza", idCerveza)).first()
+        if (doc == null) {
+            println("No existe ninguna cerveza con ID = $idCerveza")
+            return
+        }
+
+        println("Cerveza seleccionada: ${doc.getString("nombre")}")
+
+        val opcion = funcionesExtra.leerDato(variables.menuEdicionCerveza, Int::class.java)
+        if (opcion == null || opcion !in 0..6) {
+            println("Opción no válida.")
+            return
+        }
+        if (opcion == 0) {
+            println("Actualización cancelada.")
+            return
+        }
+
+        // Leer el nuevo valor según la opción
+        val update = when (opcion) {
+            1 -> Updates.set("nombre", funcionesExtra.leerDato("Nuevo nombre: ", String::class.java))
+            2 -> Updates.set("graduacion", funcionesExtra.leerDato("Nueva graduación: ", Double::class.java))
+            3 -> Updates.set("tipo", funcionesExtra.leerDato("Nuevo tipo: ", String::class.java))
+            4 -> Updates.set("color", funcionesExtra.leerDato("Nuevo color: ", String::class.java))
+            5 -> Updates.set("origen", funcionesExtra.leerDato("Nuevo origen: ", String::class.java))
+            6 -> Updates.set("puntuacion", funcionesExtra.leerDato("Nueva graduación: ", Double::class.java))
+            else -> null
+        }
+
+        if (update != null) {
+            val resultado = collection.updateOne(Document("idCerveza", idCerveza), update)
+            if (resultado.modifiedCount > 0) {
+                println("Cerveza con ID = $idCerveza actualizada con éxito.")
+            } else {
+                println("No se pudo actualizar la cerveza.")
             }
-            lista
-        } catch (e: SQLException) {
-            println("Error accediendo a la BD: ${e.message}")
-            null
         }
     }
-    // Insertar Cerveza
-    fun insertarCerveza(cerveza: Cerveza) {
-        try {
-            funcionesExtra.getConnection()?.use { conn ->
-                conn.prepareStatement(variables.queryInsertarCerveza).use { stmt ->
-                    stmt.setString(1, cerveza.nombreCerveza)
-                    stmt.setDouble(2, cerveza.graduacionCerveza)
-                    stmt.setString(3, cerveza.tipoCerveza)
-                    stmt.setString(4, cerveza.colorCerveza)
-                    stmt.setString(5, cerveza.origenCerveza)
-                    stmt.setDouble(6, cerveza.puntuacionCerveza)
-                    stmt.executeUpdate()
-                    println("\nCerveza '${cerveza.nombreCerveza}' insertada con éxito")
-                }
-            } ?: println(variables.noConexion)
-        } catch (e: SQLException) {
-            println("Error insertando Cerveza: ${e.message}")
-            return
-        }
-    }
-    // Actualizar Cerveza
-    fun actualizarCerveza(idCerveza: Int) {
-        if (idCerveza == null) {
-            println("\nNo se puede actualizar la cerveza sin un ID.")
-            return
-        }
-        try {
-            funcionesExtra.getConnection()?.use { conn ->
-                val selectStmt = conn.prepareStatement(variables.querySeleccionarDatosIDCerveza)
-                selectStmt.setInt(1, idCerveza)
-                val rs = selectStmt.executeQuery()
-                if (!rs.next()) {
-                    println("No existe ninguna cerveza con ese ID.")
-                    return
-                }
-                var nombreCerveza = rs.getString("nombreCerveza")
-                var graduacionCerveza = rs.getDouble("graduacionCerveza")
-                var tipoCerveza = rs.getString("tipoCerveza")
-                var colorCerveza = rs.getString("colorCerveza")
-                var origenCerveza = rs.getString("origenCerveza")
-                var puntuacionCerveza = rs.getDouble("puntuacionCerveza")
-                val opcion = funcionesExtra.leerDato(variables.menuEdicionCerveza, Int::class.java)
-                when (opcion) {
-                    1 -> nombreCerveza = funcionesExtra.leerDato("Nuevo nombre: ", String::class.java)
-                    2 -> graduacionCerveza = funcionesExtra.leerDato("Nueva graduación: ", Double::class.java)
-                    3 -> tipoCerveza = funcionesExtra.leerDato("Nuevo tipo: ", String::class.java)
-                    4 -> colorCerveza = funcionesExtra.leerDato("Nuevo color: ", String::class.java)
-                    5 -> origenCerveza = funcionesExtra.leerDato("Nuevo origen: ", String::class.java)
-                    6 -> puntuacionCerveza = funcionesExtra.leerDato("Nueva puntuación: ", Double::class.java)
-                    7 -> {
-                        println("Actualización cancelada.")
-                        return
-                    }
-                    else -> {
-                        println("Opción no válida.")
-                        return
-                    }
-                }
-                conn.prepareStatement(variables.queryActualizarCerveza).use { stmt ->
-                    stmt.setString(1, nombreCerveza)
-                    stmt.setDouble(2, graduacionCerveza)
-                    stmt.setString(3, tipoCerveza)
-                    stmt.setString(4, colorCerveza)
-                    stmt.setString(5, origenCerveza)
-                    stmt.setDouble(6, puntuacionCerveza)
-                    stmt.setInt(7, idCerveza)
-                    val filas = stmt.executeUpdate()
-                    if (filas > 0) {
-                        println("\nCerveza con ID = ${idCerveza} actualizada con éxito.")
-                    } else {
-                        println("\nNo se encontró ninguna cerveza con el ID = ${idCerveza}")
-                    }
-                }
-            } ?: println(variables.noConexion)
-        } catch (e: SQLException) {
-            println("Error actualizando cerveza: ${e.message}")
-            return
-        }
-    }
-    // Eliminar Cerveza
-    fun eliminarCerveza(idCerveza: Int) {
-        try {
-            funcionesExtra.getConnection()?.use { conn ->
-                var nombre: String? = null
-                conn.prepareStatement(variables.queryEliminarCerveza).use { pstmt ->
-                    pstmt.setInt(1, idCerveza)
-                    val rs = pstmt.executeQuery()
 
-                    if (rs.next()) {
-                        nombre = rs.getString("nombre")
-                    }
-                }
-                if (nombre == null) {
-                    println("No existe ninguna cerveza con ese ID")
-                    return
-                }
-                val respuesta = funcionesExtra.input(
-                    "El nombre de la cerveza con ID: $idCerveza es: $nombre ¿Quieres eliminarla? (s/n): "
-                )?.lowercase()
-                if (respuesta != "s") {
-                    println("Eliminación cancelada")
-                    return
-                }
-                conn.prepareStatement(variables.queryEliminarCerveza).use { pstmt ->
-                    pstmt.setInt(1, idCerveza)
-                    pstmt.executeUpdate()
-                }
-                println("Cerveza eliminada correctamente")
-            } ?: println(variables.noConexion)
-        } catch (e: SQLException) {
-            println("Error eliminando cerveza: ${e.message}")
+    fun eliminarCerveza(collection: MongoCollection<Document>) {
+        imprimirCervezas(collection)
+
+        val idCerveza = funcionesExtra.leerDato("Introduce ID de la cerveza a eliminar: ", Int::class.java)
+        // Buscar el documento
+        val doc = collection.find(Document("idCerveza", idCerveza)).first()
+        if (doc == null) {
+            println("No existe ninguna cerveza con ID = $idCerveza")
             return
         }
+
+        val nombre = doc.getString("nombre")
+        print("El nombre de la cerveza con ID $idCerveza es '$nombre'. ¿Quieres eliminarla? (s/n): ")
+        val respuesta = readLine()?.lowercase()
+
+        if (respuesta != "s") {
+            println("Eliminación cancelada.")
+            return
+        }
+
+        val resultado = collection.deleteOne(Document("idCerveza", idCerveza))
+        if (resultado.deletedCount > 0) {
+            println("Cerveza '$nombre' eliminada correctamente.")
+        } else {
+            println("No se pudo eliminar la cerveza.")
+        }
     }
+
 }
-class CervezasFunciones {
-    fun imprimirCervezas() {
-        val lista = CervezasDAO.listarCervezas()
-        if (lista == null) {
-            println("Hubo un error. Volviendo al menú anterior...")
-            return
-        }
-        if (lista.isEmpty()) {
-            println("No hay cervezas registradas.")
-            return
-        }
-        println(variables.cervezasImpresion)
-        lista.forEach {
-            println("ID: ${it.idCerveza} " +
-                    "- Nombre: ${it.nombreCerveza} " +
-                    "- Graduacion: ${it.graduacionCerveza}% " +
-                    "- Tipo: ${it.tipoCerveza} " +
-                    "- Color: ${it.colorCerveza} " +
-                    "- Origen: ${it.origenCerveza} " +
-                    "- Puntuacion: ${it.puntuacionCerveza}*"
-            )
-        }
-    }
-    fun insertarCervezaBD(){
-        CervezasDAO.insertarCerveza(
-            Cerveza(
-                nombreCerveza = funcionesExtra.leerDato("Introduce nombre: ", String::class.java, "Default"),
-                graduacionCerveza = funcionesExtra.leerDato("Introduce graduación: ", Double::class.java, 0.0),
-                tipoCerveza = funcionesExtra.leerDato("Introduce tipo: ", String::class.java, "Default"),
-                colorCerveza = funcionesExtra.leerDato("Introduce color: ", String::class.java, "Default"),
-                origenCerveza = funcionesExtra.leerDato("Introduce origen: ", String::class.java, "Default"),
-                puntuacionCerveza = funcionesExtra.leerDato("Introduce puntuación: ", Double::class.java, 0.0)
-            )
-        )
-    }
-    fun actualizarCervezaPorID() {
-        imprimirCervezas()
-        val idCerveza = funcionesExtra.leerDato("Introduce ID de la Cerveza que quieres modificar: ", Int::class.java)
-        CervezasDAO.actualizarCerveza(idCerveza)
-    }
-    fun eliminarCervezaPorID() {
-        imprimirCervezas()
-        val idCerveza = funcionesExtra.leerDato("Introduce ID de la Cerveza que quieres eliminar: ", Int::class.java)
-        CervezasDAO.eliminarCerveza(idCerveza)
-    }
-}
-val funcionesCervezas = CervezasFunciones()
+val funcionesCervezas = FuncionesCerveza()
