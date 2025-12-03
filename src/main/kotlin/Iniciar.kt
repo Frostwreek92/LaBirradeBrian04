@@ -10,13 +10,12 @@ class Iniciar {
         println(variables.titulo)
         try {
             while (!variables.salirMenuInicial) {
-                println(variables.menuInicial)
-                val opcion = funcionesExtra.leerDato("Introduce una opción entre 0 y 4: ", Int::class.java, 0)
+                val opcion = funcionesExtra.leerDato(variables.menuInicial, Int::class.java, 0)
                 when (opcion) {
                     1 -> imprimirBaseDeDatos()
-                    2 -> println("Insertar Información")
-                    3 -> println("Modificar Información")
-                    4 -> println("Eliminar Información")
+                    2 -> insertarInformacionBD()
+                    3 -> modificarInformacionPorID()
+                    4 -> eliminarDatoPorID()
                     0 -> variables.salirMenuInicial = funcionesExtra.finEleccion()
                     else -> println("Introduce un número entre 0 y 4")
                 }
@@ -31,4 +30,13 @@ val iniciar = Iniciar()
 
 fun imprimirBaseDeDatos() {
     funcionesCervezas.imprimirCervezas()
+}
+fun insertarInformacionBD() {
+    funcionesCervezas.insertarCervezaBD()
+}
+fun modificarInformacionPorID() {
+    funcionesCervezas.actualizarCervezaPorID()
+}
+fun eliminarDatoPorID() {
+    funcionesCervezas.eliminarCervezaPorID()
 }

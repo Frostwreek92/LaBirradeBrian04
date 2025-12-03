@@ -9,7 +9,6 @@ class FuncionesExtra {
     fun getConnection(): Connection? {
         return try {
             DriverManager.getConnection(variables.urlBD, variables.user, variables.pass)
-
         } catch (e: SQLException) {
             e.printStackTrace()
             null
