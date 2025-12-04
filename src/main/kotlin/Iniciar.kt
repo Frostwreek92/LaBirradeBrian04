@@ -71,7 +71,7 @@ fun consultasAdicionales(collection: MongoCollection<Document>) {
                 3 -> funcionesCervezas.calcularPromedioGraduacion(collection)
                 4 -> funcionesCervezas.promedioPuntuacionPorTipo(collection)
                 5 -> funcionesCervezas.top3Cervezas(collection)
-                0 -> variables.salirMenuCRUD = funcionesExtra.finEleccion()
+                0 -> variables.salirConsultasAdicionales = funcionesExtra.finEleccion()
             }
         }
     } catch (e: Exception) {

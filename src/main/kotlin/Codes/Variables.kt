@@ -5,7 +5,7 @@ const val DATABASE = "LaBirradeBrian"
 const val COLECCION = "cervezas"
 const val USER = "user"
 const val PASSWORD = "user"
-const val HOST = "localhost"
+const val HOST = "127.0.0.1"
 const val PORT = 27017
 const val URL = "mongodb://$USER:$PASSWORD@$HOST:$PORT/$DATABASE"
 
