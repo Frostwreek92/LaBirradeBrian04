@@ -341,7 +341,6 @@ class FuncionesCerveza {
 }
 val funcionesCervezas = FuncionesCerveza()
 
-
 class FuncionesExtra {
     // Fin para cualquier when
     fun finEleccion(): Boolean {
