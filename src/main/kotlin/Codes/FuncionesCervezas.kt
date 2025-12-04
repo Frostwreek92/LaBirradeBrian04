@@ -105,7 +105,7 @@ class FuncionesCerveza {
         }
     }
     fun consultarConFiltros(collection: MongoCollection<Document>) {
-        println("=== Cervezas con graduación > 5 ===")
+        println("\n=== Cervezas con graduación > 5 ===")
         val cervezasFuertes = collection.find(Filters.gt("graduacion", 5.0))
         for (doc in cervezasFuertes) {
             println("${doc.getString("nombre")} - Graduación: ${doc.get("graduacion", Number::class.java).toDouble()}")
@@ -117,7 +117,7 @@ class FuncionesCerveza {
         }
     }
     fun consultarConProyeccion(collection: MongoCollection<Document>) {
-        println("=== Cervezas con solo nombre y graduación ===")
+        println("\n=== Cervezas con solo nombre y graduación ===")
         val proyeccion = collection.find()
             .projection(Projections.include("nombre", "graduacion"))
         for (doc in proyeccion) {
@@ -128,10 +128,10 @@ class FuncionesCerveza {
         val promedio = collection.aggregate(
             listOf(Aggregates.group(null, Accumulators.avg("promedio", "\$graduacion")))
         ).first()
-        println("Promedio de graduación de todas las cervezas: ${promedio?.getDouble("promedio")}")
+        println("\nPromedio de graduación de todas las cervezas: ${promedio?.getDouble("promedio")}")
     }
     fun promedioPuntuacionPorTipo(collection: MongoCollection<Document>) {
-        println("=== Promedio de puntuación por tipo de cerveza ===")
+        println("\n=== Promedio de puntuación por tipo de cerveza ===")
         val promedioPorTipo = collection.aggregate(
             listOf(Aggregates.group("\$tipo", Accumulators.avg("promedioPuntuacion", "\$puntuacion")))
         )
@@ -140,7 +140,7 @@ class FuncionesCerveza {
         }
     }
     fun top3Cervezas(collection: MongoCollection<Document>) {
-        println("=== Top 3 cervezas por puntuación ===")
+        println("\n=== Top 3 cervezas por puntuación ===")
         val top3 = collection.aggregate(
             listOf(
                 Aggregates.sort(Sorts.descending("puntuacion")),

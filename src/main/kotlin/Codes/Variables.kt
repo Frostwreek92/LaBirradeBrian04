@@ -20,14 +20,14 @@ class Variables {
     4. Importar la BD
     0. Salir
 Introduce una opción entre 0 y 4 por favor: """.trimIndent()
-    val menuCRUD = "\n" + """
+    val menuCRUD = "\n" + """Menu CRUD:
     1. Ver Información de las Cervezas
     2. Insertar una nueva Cerveza
     3. Modificar Cerveza por ID introducido
     4. Eliminar Cerveza por ID introducido
     0. Volver
 Introduce una opción entre 0 y 4 por favor:  """.trimIndent()
-    val menuConsultasAdicionales = "\n" + """
+    val menuConsultasAdicionales = "\n" + """Menu Consultas Adicionales
     1. Consultas con Filtros
     2. Consulta con Proyecciones
     3. Calcular Promedio Graduación
