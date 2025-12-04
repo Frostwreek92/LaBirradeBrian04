@@ -68,7 +68,6 @@ Tu opción: """.trimIndent()
 val variables = Variables()
 
 fun main() {
-    println(variables.titulo)
     iniciar.iniciarPrograma()
 }
 
